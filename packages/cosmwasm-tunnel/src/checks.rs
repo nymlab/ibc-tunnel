@@ -4,7 +4,7 @@ use cosmwasm_std::IbcOrder;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
-pub enum SimpleIcaError {
+pub enum ChannelError {
     #[error("Only supports unordered channels")]
     InvalidChannelOrder,
 
@@ -12,17 +12,17 @@ pub enum SimpleIcaError {
     InvalidChannelVersion(&'static str),
 }
 
-pub fn check_order(order: &IbcOrder) -> Result<(), SimpleIcaError> {
+pub fn check_order(order: &IbcOrder) -> Result<(), ChannelError> {
     if order != &APP_ORDER {
-        Err(SimpleIcaError::InvalidChannelOrder)
+        Err(ChannelError::InvalidChannelOrder)
     } else {
         Ok(())
     }
 }
 
-pub fn check_version(version: &str) -> Result<(), SimpleIcaError> {
+pub fn check_version(version: &str) -> Result<(), ChannelError> {
     if version != IBC_APP_VERSION {
-        Err(SimpleIcaError::InvalidChannelVersion(IBC_APP_VERSION))
+        Err(ChannelError::InvalidChannelVersion(IBC_APP_VERSION))
     } else {
         Ok(())
     }

@@ -1,23 +1,59 @@
-The purpose of this project is to make it easier for other developers to create ICA across different cosmos chains. In order to reduce the need to upload an [ica-host](./contracts/ica-host/) for each developer/team and prevent unnecessary use of space on the blockchain.
+# Ibc Tunnels
 
-The process consists of deploying a contract that acts as a host in each chain and once a connection is established it deploys a [CW1](https://github.com/CosmWasm/cw-plus/tree/main/contracts/cw1-whitelist) that will be the ICA.
+The purpose of this project is to make it easier for other developers to instantiate, migrate and dispatch message across different cosmos chains.
+The [tunnel](.contracts/tunnel) is used as both the host (controller of the remote proxy contract) and the remote ( reciever of instructions from the controller on the host chain).
 
-You can find a presentation of how implement "Simple ICA" contracts that is the base of this project. [Ethan's HackAtom Video](https://www.youtube.com/watch?v=x75UobIr4qo&t=9070s).
+This is inspired by the "Simple ICA" contracts that is the base of this project. [Ethan's HackAtom Video](https://www.youtube.com/watch?v=x75UobIr4qo&t=9070s).
+This is also an extension of the work on [cosmwasm-ica](https://github.com/j0nl1/cosmwasm-ica).
 
-[cosmwasm-ica](https://crates.io/crates/cosmwasm-ica) is a library to facilitate the use of ICA in your contract for sending/receiving message to/from the host.
+[cosmwasm-tunnel](https://crates.io/crates/cosmwasm-tunnel) is a library to facilitate the use of IBC tunnels in your contract for sending/receiving message to/from the host.
 
-The code used in this project was presented at HackAtom and is available at [cw-ibc-demo](https://github.com/confio/cw-ibc-demo).
+## Motivation
 
-| Chain | Network | Contract Address | CW1-Code ID | CW1 Upload Tx | CW-ICA-HOST-Code ID | CW-ICA-HOST Upload Tx & Instantiation Tx |
-| - | - | - | - | - | - | - |
-| Osmosis | Testnet | osmo1cvqz3yysqhr980ed8uswydl2pegrp0eglen3ruyaqnve0ennq6fs3cxmdg | 2943 |  [Tx][Juno-Testnet-CW1-Upload] | 2942 | [Upload Tx][Osmosis-Testnet-ICA-Host-Upload] & [Instantiation Tx][Osmosis-Testnet-ICA-Host-Instantiation]
-| Juno | Testnet | juno18fxhy3chejj655237gsa4nrzxx6sz8u3lkejtmlj78c2hgre7fcsz56z24 | 1087 | [Tx][Juno-Testnet-CW1-Upload] | 1088 | [Upload Tx][Juno-Testnet-ICA-Host-Upload] & [Instantiation Tx][Juno-Testnet-ICA-Host-Instantiation]
+In [Vectis], the VectisDAO treats wallet from different chains the same, and therefore requires tunnel to forward their transactions with the DAO.
+We have [remote-tunnel] contract for all contracts that are not deployed on Juno, which uses [dao-tunnel].
 
+In order to ensure all chains [Vectis] deploys on can have upgradable [remote-tunnel] contracts, a simple instantiation, migration and dispatch tunnel is required.
+On the host chain - Juno, the DAO can upgrade the [dao-tunnel]
 
-[Juno-Testnet-CW1-Upload]: https://testnet.mintscan.io/juno-testnet/txs/3AB898B83C55B1E5980E2112B8D3BE8AEB14DD5CAAB1D4A0E81057676AF68813
-[Juno-Testnet-ICA-Host-Upload]: https://testnet.mintscan.io/juno-testnet/txs/446509DE045FA08B5C3A18784D98725633D3590CB3CF4DF87A61B105CC3DEC55
-[Juno-Testnet-ICA-Host-Instantiation]: https://testnet.mintscan.io/juno-testnet/txs/7DB3608F86910F6F91BA03E7906AA1B71C3F8B8ABDB9ABA3E6D8179FA82FC387
+## Design outline
 
-[Osmosis-Testnet-CW1-Upload]: https://testnet.mintscan.io/osmosis-testnet/txs/C7784B5D93DF33DC4DB2DBE7B63CA94C1AAE95C54561D3DD3DFA7C310A35809F
-[Osmosis-Testnet-ICA-Host-Upload]: https://testnet.mintscan.io/osmosis-testnet/txs/0E9F8B62FEBFBE5808075B9EFD1DFF9E0A474F16DF7263A0A1108D4CB9DD1ABA
-[Osmosis-Testnet-ICA-Host-Instantiation]: https://testnet.mintscan.io/osmosis-testnet/txs/F779E254046520F63F8F5F5DA3470BDE1D2DD292C1DE77090A432187B96EB1D3
+The most simple operations can be done here (Until we implement a way to recieve payment for operations to relay and forward funds).
+
+### Roles
+
+- **Controller**: This is the role on the host (controlling) chain
+- **Proxy**: This is a contract instantiated by the **Controller** on a remote chain. The **Controller** can then dispatch messages through this **Proxy** and also migrate it. The most obviously use case for this is Interchain Account wher the **Proxy** is a [cw1-whitelist] contract on th remote chain.
+
+### Remote Instantiate
+
+The **Controller** on the host chain can instantiate any **Proxy** contract on the remote chain by passing in `code_id` and `InstantiateMsg`.
+This **Proxy** address will then be store in the tunnel as controller by the combination of:
+
+1. connection-id: The underlying light client of the remote chain
+2. port-id: The calling module to the tunnel contract
+3. controller: specified as the `info.sender` of the `ExecuteMsg::RemoteInstantiate` message on the host chain.
+
+IBC is permissionless, `channel-id` is incremental and can be considered the route the message came from, but not the source.
+
+### Remote Migrate
+
+This allows the **Controller** to migrate their **Proxy** contract to another version by passing in `MigrateMsg` and the `new_code_id`.
+
+### Remote Dispatch
+
+This allows the **Controller** to dispatch a message through their **Proxy** contract.
+For example, if this the **Proxy** is an Interchain Account cw1-whitelist, then this can dispatch the [ExecuteMsg::Execute] message on the interchain account.
+The tunnel contract will find the **Proxy** address.
+
+## Deployed on
+
+| Chain | Network | Contract Address | Ibc tunnel Code ID | Tunnel Upload Tx & Instantiation Tx |
+| ----- | ------- | ---------------- | ------------------ | ----------------------------------- |
+| Juno  | Testnet |                  |                    |                                     |
+
+[cw1-whitelist]: https://github.com/CosmWasm/cw-plus/tree/main/contracts/cw1-whitelist
+[vectis]: https://github.com/nymlab/vectis
+[dao-tunnel]: https://github.com/nymlab/vectis/tree/main/contracts/dao_tunnel
+[remote-tunnel]: https://github.com/nymlab/vectis/tree/main/contracts/remote_tunnel
+[executemsg::execute]: https://github.com/CosmWasm/cw-plus/blob/main/contracts/cw1-whitelist/src/msg.rs#L61

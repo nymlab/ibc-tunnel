@@ -1,6 +1,6 @@
 [package]
-name = "cosmwasm-ica"
-authors = ["j0nl1 <jonlitech@gmail.com>"]
+name = "cosmwasm-tunnel"
+authors = ["bwty <whalelephant@users.noreply.github.com>",  "j0nl1 <jonlitech@gmail.com>"]
 version = "0.1.0"
 edition = "2021"
 description = "A library for facilitating IBC communication of Wasm based smart contracts on Cosmos blockchains"

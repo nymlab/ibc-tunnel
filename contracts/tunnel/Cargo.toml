@@ -1,7 +1,7 @@
 [package]
-name = "ica-host"
-version = "0.2.0"
-authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+name = "ic-tunnel"
+version = "0.1.0"
+authors = ["bwty <whalelephant@users.noreply.github.com>",  "j0nl1 <jonlitech@gmail.com>"]
 edition = "2021"
 publish = false
 license = "Apache-2.0"
@@ -28,12 +28,11 @@ overflow-checks = true
 backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-cosmwasm-ica = { version = "0.1.0", path = "../../packages/cosmwasm-ica"}
+cosmwasm-tunnel = { version = "0.1.0", path = "../../packages/cosmwasm-tunnel"}
 cosmwasm-std = { version = "1.0.0", features = ["iterator", "ibc3"] }
 cosmwasm-schema = { version = "1.1.0" }
 cw-storage-plus = { version = "0.15.1" }
 cw-utils = { version = "0.15.1" }
-cw1-whitelist = { version = "0.15.1", features = ["library"]}
 thiserror = { version = "1.0.23" }
 
 [dev-dependencies]
